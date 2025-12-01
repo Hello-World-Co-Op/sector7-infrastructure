@@ -126,6 +126,20 @@ spec:
         - name: APPFLOWY_MAILER_SMTP_TLS_KIND
           value: "none"
 
+        # AI/LLM Configuration (Ollama)
+        - name: APPFLOWY_AI_OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: APPFLOWY_AI_OPENAI_API_KEY
+        - name: APPFLOWY_AI_OPENAI_API_BASE
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: APPFLOWY_AI_OPENAI_API_BASE
+        - name: APPFLOWY_AI_ENABLED
+          value: "true"
+
         resources:
           requests:
             memory: "1Gi"

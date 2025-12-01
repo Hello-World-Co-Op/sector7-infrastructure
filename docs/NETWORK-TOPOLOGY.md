@@ -9,26 +9,23 @@ Internet
    │
    ├─► Protectli Firewall (OPNsense)
    │      └─► WAN: DHCP from modem
-   │      └─► LAN: 192.168.1.0/24
-   │
-   ├─► Router
-   │      └─► Gateway: 192.168.1.1
-   │      └─► DHCP Server for 192.168.1.0/24
+   │      └─► LAN: 192.168.2.0/24
+   │      └─► Gateway: 192.168.2.1
    │
    ├─► 5-Port Switch
    │
    ├─► Aurora Tower (k3s control plane)
-   │      └─► IP: 192.168.1.50
+   │      └─► IP: 192.168.2.159
    │      └─► Role: k3s server + worker
    │      └─► Specs: AMD Ryzen 5000, 32GB RAM, 2TB
    │
-   ├─► Dell OptiPlex (k3s worker)
-   │      └─► IP: 192.168.1.51
+   ├─► library-wa-shi-tan (k3s worker)
+   │      └─► IP: 192.168.2.231
    │      └─► Role: k3s agent
    │      └─► Specs: i7 vPro, 32GB RAM, 2TB
    │
    └─► Mini PC (management)
-          └─► IP: 192.168.1.106
+          └─► IP: 192.168.2.93
           └─► Role: kubectl management, development
           └─► Specs: Ryzen 7 PRO, 32GB RAM, 2TB
 ```
@@ -39,18 +36,18 @@ Internet
 
 | IP Address | Device | Purpose | Status |
 |------------|--------|---------|--------|
-| 192.168.1.1 | Gateway | Router/OPNsense gateway | Active |
-| 192.168.1.50 | aurora | k3s control plane + worker | Active |
-| 192.168.1.51 | optiplex | k3s worker node | Active |
-| 192.168.1.106 | mini-pc | kubectl management | Active |
-| 192.168.1.200-220 | MetalLB Pool | LoadBalancer service IPs | Reserved |
+| 192.168.2.1 | Gateway | OPNsense firewall/gateway | Active |
+| 192.168.2.93 | mini-pc | kubectl management | Active |
+| 192.168.2.159 | aurora | k3s control plane + worker | Active |
+| 192.168.2.231 | library-wa-shi-tan | k3s worker node | Active |
+| 192.168.2.200-220 | MetalLB Pool | LoadBalancer service IPs | Reserved |
 
 ### LoadBalancer IP Assignments
 
 | IP Address | Service | Namespace | Purpose |
 |------------|---------|-----------|---------|
-| 192.168.1.200 | traefik | traefik | Ingress controller (HTTP/HTTPS) |
-| 192.168.1.201-220 | - | - | Available for new LoadBalancer services |
+| 192.168.2.200 | ingress-nginx | ingress-nginx | Ingress controller (HTTP/HTTPS) |
+| 192.168.2.201-220 | - | - | Available for new LoadBalancer services |
 
 ## Network Services
 
@@ -63,27 +60,54 @@ Internet
 
 ### MetalLB Configuration
 - **Mode:** Layer 2 (L2Advertisement)
-- **IP Pool:** 192.168.1.200-192.168.1.220
+- **IP Pool:** 192.168.2.200-192.168.2.220
 - **Namespace:** metallb-system
 
-### Traefik Ingress
-- **LoadBalancer IP:** 192.168.1.200
-- **HTTP Port:** 80 → 31436 (NodePort)
-- **HTTPS Port:** 443 → 32251 (NodePort)
-- **Dashboard Port:** 8080 (ClusterIP only)
+### Ingress-NGINX Controller
+- **LoadBalancer IP:** 192.168.2.200
+- **HTTP Port:** 80 → 32751 (NodePort)
+- **HTTPS Port:** 443 → 30248 (NodePort)
 
-## OPNsense Firewall Configuration Needed
+## External Access
 
-### 1. Firewall Rules (LAN Interface)
+### Public IP
+- **WAN IP:** 71.73.220.69
+- **Domain:** sector7.helloworlddao.com
 
-Allow internal traffic to Kubernetes services:
+### DNS Records (point to 71.73.220.69)
+```
+A     sector7.helloworlddao.com           → 71.73.220.69
+CNAME appflowy.sector7.helloworlddao.com  → sector7.helloworlddao.com
+CNAME n8n.sector7.helloworlddao.com       → sector7.helloworlddao.com
+CNAME nextcloud.sector7.helloworlddao.com → sector7.helloworlddao.com
+CNAME nocodb.sector7.helloworlddao.com    → sector7.helloworlddao.com
+```
+
+## OPNsense Firewall Configuration
+
+### Access OPNsense Web UI
+- **URL:** http://192.168.2.1
+- **Default user:** root
+
+### 1. Port Forwarding (WAN Interface)
+
+Navigate to: **Firewall → NAT → Port Forward**
+
+| Interface | Protocol | Dest Port | Redirect Target IP | Redirect Port | Description |
+|-----------|----------|-----------|-------------------|---------------|-------------|
+| WAN | TCP | 80 | 192.168.2.200 | 80 | HTTP to Ingress |
+| WAN | TCP | 443 | 192.168.2.200 | 443 | HTTPS to Ingress |
+
+### 2. Firewall Rules (LAN Interface)
+
+Navigate to: **Firewall → Rules → LAN**
 
 ```
 Action: Pass
 Interface: LAN
 Protocol: TCP/UDP
 Source: LAN net
-Destination: 192.168.1.50-51 (k3s nodes)
+Destination: 192.168.2.159, 192.168.2.231 (k3s nodes)
 Description: Allow LAN access to k3s cluster nodes
 ```
 
@@ -92,175 +116,81 @@ Action: Pass
 Interface: LAN
 Protocol: TCP/UDP
 Source: LAN net
-Destination: 192.168.1.200-220 (MetalLB pool)
+Destination: 192.168.2.200-220 (MetalLB pool)
 Description: Allow LAN access to k8s LoadBalancer services
 ```
 
-### 2. Port Forwarding (WAN Interface)
+### 3. Local DNS Configuration
 
-For external access to services:
+Navigate to: **Services → Unbound DNS → Overrides**
 
-```
-Interface: WAN
-Protocol: TCP
-Source: any
-Source Port: any
-Destination: WAN address
-Destination Port: 80
-Redirect Target IP: 192.168.1.200
-Redirect Target Port: 80
-Description: HTTP to Traefik Ingress
-```
+Add these host overrides:
 
-```
-Interface: WAN
-Protocol: TCP
-Source: any
-Source Port: any
-Destination: WAN address
-Destination Port: 443
-Redirect Target IP: 192.168.1.200
-Redirect Target Port: 443
-Description: HTTPS to Traefik Ingress
-```
-
-### 3. NAT Outbound
-
-Ensure NAT is enabled for outbound traffic from:
-- 192.168.1.50 (aurora)
-- 192.168.1.51 (optiplex)
-- 192.168.1.200-220 (MetalLB pool)
-
-### 4. DNS Configuration
-
-#### Option A: OPNsense Unbound DNS
-
-Add local domain overrides for `*.sector7.helloworlddao.com`:
-
-```
-Domain: sector7.helloworlddao.com
-IP Address: 192.168.1.200
-Description: Wildcard for all sector7 services
-```
-
-Specific overrides:
-- `n8n.sector7.helloworlddao.com` → 192.168.1.200
-- `nextcloud.sector7.helloworlddao.com` → 192.168.1.200
-- `nocodb.sector7.helloworlddao.com` → 192.168.1.200
-- `appflowy.sector7.helloworlddao.com` → 192.168.1.200
-- `longhorn.sector7.helloworlddao.com` → 192.168.1.200
-- `grafana.sector7.helloworlddao.com` → 192.168.1.200
-
-#### Option B: External DNS
-
-Point public DNS records to your WAN IP:
-- Requires port forwarding (80/443)
-- Requires cert-manager for Let's Encrypt SSL
-- Already configured in cluster
-
-### 5. DHCP Reservations
-
-Set static DHCP leases for:
-- 192.168.1.50 → aurora MAC address
-- 192.168.1.51 → optiplex MAC address
-- 192.168.1.106 → mini-pc MAC address
-
-## Security Considerations
-
-### Firewall Best Practices
-
-1. **Deny by Default:** Block all traffic not explicitly allowed
-2. **Segment Networks:** Consider VLANs for management vs. services
-3. **Rate Limiting:** Enable for WAN interface (protect against DDoS)
-4. **IPS/IDS:** Enable Suricata for intrusion detection
-5. **Geo-blocking:** Block unnecessary countries
-6. **Logging:** Enable firewall logging for monitoring
-
-### Recommended OPNsense Features to Enable
-
-- **Suricata IDS/IPS:** Monitor and block malicious traffic
-- **Unbound DNS:** Local DNS resolution with DNS-over-TLS upstream
-- **HAProxy (optional):** Additional layer 7 load balancing
-- **Let's Encrypt (optional):** SSL for OPNsense web UI
-- **WireGuard/OpenVPN:** Remote access VPN
-- **ACME Client:** Automatic SSL certificate management
+| Host | Domain | IP Address | Description |
+|------|--------|------------|-------------|
+| appflowy | sector7.helloworlddao.com | 192.168.2.200 | AppFlowy workspace |
+| n8n | sector7.helloworlddao.com | 192.168.2.200 | n8n workflow automation |
+| nextcloud | sector7.helloworlddao.com | 192.168.2.200 | Nextcloud file sharing |
+| nocodb | sector7.helloworlddao.com | 192.168.2.200 | NocoDB database interface |
+| longhorn | sector7.helloworlddao.com | 192.168.2.200 | Longhorn storage UI |
+| grafana | sector7.helloworlddao.com | 192.168.2.200 | Grafana monitoring |
 
 ## Service Access Matrix
 
-| Service | Internal URL | External URL | Port | Namespace |
-|---------|-------------|--------------|------|-----------|
-| Traefik | http://192.168.1.200 | https://sector7.helloworlddao.com | 443 | traefik |
-| n8n | https://n8n.sector7.helloworlddao.com | ✓ | 443 | n8n |
-| Nextcloud | https://nextcloud.sector7.helloworlddao.com | ✓ | 443 | nextcloud |
-| NocoDB | https://nocodb.sector7.helloworlddao.com | ✓ | 443 | nocodb |
-| AppFlowy | https://appflowy.sector7.helloworlddao.com | ✓ | 443 | appflowy |
-| Longhorn UI | https://longhorn.sector7.helloworlddao.com | ✓ | 443 | longhorn-system |
-| Grafana | https://grafana.sector7.helloworlddao.com | ✓ | 443 | monitoring |
+| Service | Internal URL | External URL | Namespace |
+|---------|-------------|--------------|-----------|
+| Ingress | http://192.168.2.200 | https://sector7.helloworlddao.com | ingress-nginx |
+| AppFlowy | http://appflowy.sector7.helloworlddao.com | https://appflowy.sector7.helloworlddao.com | appflowy |
+| n8n | http://n8n.sector7.helloworlddao.com | https://n8n.sector7.helloworlddao.com | n8n |
+| Nextcloud | http://nextcloud.sector7.helloworlddao.com | https://nextcloud.sector7.helloworlddao.com | nextcloud |
+| NocoDB | http://nocodb.sector7.helloworlddao.com | https://nocodb.sector7.helloworlddao.com | nocodb |
 
 ## Troubleshooting
 
 ### Check Connectivity
 
 ```bash
-# From any LAN device, test connectivity to:
+# From Mini PC, test connectivity to:
+
+# OPNsense gateway
+ping 192.168.2.1
 
 # Aurora node
-ping 192.168.1.50
+ping 192.168.2.159
 
-# OptiPlex node
-ping 192.168.1.51
+# library-wa-shi-tan node
+ping 192.168.2.231
 
-# Traefik LoadBalancer
-ping 192.168.1.200
-curl -I http://192.168.1.200
+# Ingress LoadBalancer
+ping 192.168.2.200
+curl -I http://192.168.2.200
 
 # k3s API server
-curl -k https://192.168.1.50:6443
+curl -k https://192.168.2.159:6443
 ```
 
 ### Check MetalLB
 
 ```bash
-kubectl get svc -n traefik
+kubectl get svc -n ingress-nginx
 kubectl get ipaddresspool -n metallb-system
 kubectl logs -n metallb-system -l app=metallb -l component=controller
 ```
 
-### Check OPNsense Firewall Logs
-
-1. Navigate to **Firewall → Log Files → Live View**
-2. Filter by source: 192.168.1.50, 192.168.1.51, 192.168.1.200
-3. Look for blocked traffic
-
 ### Common Issues
 
 **Issue:** Services not accessible from LAN
-- **Solution:** Add firewall rule to allow LAN → MetalLB pool (192.168.1.200-220)
+- **Solution:** Add firewall rule to allow LAN → MetalLB pool (192.168.2.200-220)
 
 **Issue:** External access not working
-- **Solution:** Configure WAN port forwarding for 80/443 → 192.168.1.200
+- **Solution:** Configure WAN port forwarding for 80/443 → 192.168.2.200
 
 **Issue:** DNS not resolving sector7.helloworlddao.com locally
 - **Solution:** Add Unbound DNS overrides in OPNsense
 
-## Next Steps
-
-1. Access OPNsense web interface (likely http://192.168.1.1)
-2. Configure firewall rules as outlined above
-3. Set up port forwarding for external access
-4. Configure local DNS for internal resolution
-5. Enable IDS/IPS for security monitoring
-6. Test connectivity to all services
-
-## References
-
-- [OPNsense Documentation](https://docs.opnsense.org/)
-- [MetalLB L2 Configuration](https://metallb.universe.tf/configuration/l2/)
-- [k3s Networking](https://docs.k3s.io/networking)
-- [Traefik Documentation](https://doc.traefik.io/traefik/)
-
 ---
 
-**Last Updated:** 2025-11-13
-**Network Subnet:** 192.168.1.0/24
-**Gateway:** 192.168.1.1 (OPNsense/Router)
+**Last Updated:** 2025-12-01
+**Network Subnet:** 192.168.2.0/24
+**Gateway:** 192.168.2.1 (OPNsense)
+**External IP:** 71.73.220.69

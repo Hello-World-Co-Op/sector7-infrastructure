@@ -1,0 +1,28 @@
+# Secrets - NEVER commit these
+secrets/*.env
+secrets/*.key
+secrets/*.pem
+secrets/*.crt
+
+# Kubernetes downloaded manifests (too large)
+cluster/02-cert-manager/cert-manager-full.yaml
+
+# Backups
+backups/
+*.sql
+*.dump
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log

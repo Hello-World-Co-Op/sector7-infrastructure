@@ -1,0 +1,89 @@
+---
+# Ingress for GoTrue with path rewriting
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: appflowy-gotrue-ingress
+  namespace: appflowy
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: appflowy.sector7.helloworlddao.com
+    http:
+      paths:
+      # GoTrue authentication endpoints - rewrite /gotrue/* to /*
+      - path: /gotrue(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: appflowy-gotrue
+            port:
+              number: 9999
+---
+# Main ingress for all other services (no rewriting)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: appflowy-main-ingress
+  namespace: appflowy
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: appflowy.sector7.helloworlddao.com
+    http:
+      paths:
+      # WebSocket endpoint
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: appflowy-cloud
+            port:
+              number: 8000
+
+      # API endpoints
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: appflowy-cloud
+            port:
+              number: 8000
+
+      # Admin console
+      - path: /console
+        pathType: Prefix
+        backend:
+          service:
+            name: appflowy-admin-frontend
+            port:
+              number: 3000
+
+      # MinIO console
+      - path: /minio
+        pathType: Prefix
+        backend:
+          service:
+            name: appflowy-minio
+            port:
+              number: 9001
+
+      # Web frontend (default - must be last)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: appflowy-web
+            port:
+              number: 3000

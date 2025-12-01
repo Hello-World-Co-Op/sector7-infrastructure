@@ -1,0 +1,70 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-data
+  namespace: n8n
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  namespace: n8n
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: aurora
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: n8n
+        image: n8nio/n8n:latest
+        ports:
+        - containerPort: 5678
+        env:
+        - name: N8N_HOST
+          value: "n8n.sector7.helloworlddao.com"
+        - name: N8N_PORT
+          value: "5678"
+        - name: N8N_PROTOCOL
+          value: "https"
+        - name: WEBHOOK_URL
+          value: "https://n8n.sector7.helloworlddao.com/"
+        - name: GENERIC_TIMEZONE
+          value: "America/New_York"
+        - name: N8N_AI_ENABLED
+          value: "true"
+        - name: N8N_AI_PROVIDER
+          value: "ollama"
+        - name: OLLAMA_HOST
+          value: "http://ollama.ollama.svc.cluster.local:11434"
+        volumeMounts:
+        - name: n8n-data
+          mountPath: /home/node/.n8n
+          subPath: n8n
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      volumes:
+      - name: n8n-data
+        persistentVolumeClaim:
+          claimName: n8n-data

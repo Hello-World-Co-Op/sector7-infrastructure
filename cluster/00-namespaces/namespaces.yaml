@@ -1,0 +1,30 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: supabase
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: n8n
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nextcloud
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nocodb
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: appflowy
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring

@@ -1,0 +1,15 @@
+# cert-manager installation
+# Provides automatic SSL certificate management via Let's Encrypt
+
+# Apply this file directly from the official release
+# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml
+
+# Or download and apply locally:
+# curl -sL https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml > cluster/02-cert-manager/cert-manager-full.yaml
+# kubectl apply -f cluster/02-cert-manager/cert-manager-full.yaml
+
+# Wait for cert-manager to be ready:
+# kubectl wait --namespace cert-manager \
+#   --for=condition=ready pod \
+#   --selector=app.kubernetes.io/instance=cert-manager \
+#   --timeout=90s

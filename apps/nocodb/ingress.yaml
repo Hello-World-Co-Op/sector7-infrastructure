@@ -1,0 +1,25 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nocodb-ingress
+  namespace: nocodb
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - nocodb.sector7.helloworlddao.com
+    secretName: nocodb-tls
+  rules:
+  - host: nocodb.sector7.helloworlddao.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nocodb
+            port:
+              number: 8080

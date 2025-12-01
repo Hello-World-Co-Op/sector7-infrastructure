@@ -1,0 +1,105 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: appflowy-postgres-data
+  namespace: appflowy
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: appflowy-postgres
+  namespace: appflowy
+spec:
+  serviceName: appflowy-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appflowy-postgres
+  template:
+    metadata:
+      labels:
+        app: appflowy-postgres
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: aurora
+      containers:
+      - name: postgres
+        image: pgvector/pgvector:pg16
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: POSTGRES_DB
+        - name: PGPORT
+          value: "5432"
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+          subPath: pgdata
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - degenotterdev
+            - -d
+            - appflowy
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - degenotterdev
+            - -d
+            - appflowy
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: appflowy-postgres-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appflowy-postgres
+  namespace: appflowy
+spec:
+  selector:
+    app: appflowy-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+  clusterIP: None

@@ -1,0 +1,13 @@
+# Longhorn Distributed Storage
+# Install dependencies on ALL nodes first:
+# sudo apt install -y open-iscsi nfs-common
+# sudo systemctl enable --now iscsid
+
+# Apply Longhorn installation:
+# kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.6.0/deploy/longhorn.yaml
+
+# Wait for Longhorn to be ready (takes 3-5 minutes):
+# kubectl get pods -n longhorn-system -w
+
+# Set as default storage class:
+# kubectl patch storageclass longhorn -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'

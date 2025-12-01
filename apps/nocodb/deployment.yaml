@@ -1,0 +1,59 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nocodb-data
+  namespace: nocodb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nocodb
+  namespace: nocodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nocodb
+  template:
+    metadata:
+      labels:
+        app: nocodb
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: aurora
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: nocodb
+        image: nocodb/nocodb:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NC_DB
+          valueFrom:
+            secretKeyRef:
+              name: nocodb-config
+              key: NC_DB
+        volumeMounts:
+        - name: nocodb-data
+          mountPath: /usr/app/data
+          subPath: nocodb
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      volumes:
+      - name: nocodb-data
+        persistentVolumeClaim:
+          claimName: nocodb-data

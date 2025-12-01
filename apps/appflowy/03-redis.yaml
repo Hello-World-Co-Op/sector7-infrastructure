@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appflowy-redis
+  namespace: appflowy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appflowy-redis
+  template:
+    metadata:
+      labels:
+        app: appflowy-redis
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: aurora
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appflowy-redis
+  namespace: appflowy
+spec:
+  selector:
+    app: appflowy-redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis

@@ -1,0 +1,160 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appflowy-cloud
+  namespace: appflowy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appflowy-cloud
+  template:
+    metadata:
+      labels:
+        app: appflowy-cloud
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: aurora
+      containers:
+      - name: appflowy-cloud
+        image: appflowyinc/appflowy_cloud:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        # Environment
+        - name: RUST_LOG
+          value: "info"
+        - name: APPFLOWY_ENVIRONMENT
+          value: "production"
+
+        # Database Configuration
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: POSTGRES_DB
+        - name: APPFLOWY_DATABASE_URL
+          value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@appflowy-postgres:5432/$(POSTGRES_DB)"
+        - name: APPFLOWY_DATABASE_MAX_CONNECTIONS
+          value: "40"
+
+        # Redis Configuration
+        - name: APPFLOWY_REDIS_URI
+          value: "redis://appflowy-redis:6379"
+
+        # GoTrue Configuration
+        - name: APPFLOWY_GOTRUE_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: GOTRUE_JWT_SECRET
+        - name: APPFLOWY_GOTRUE_BASE_URL
+          value: "http://appflowy-gotrue:9999"
+
+        # S3/MinIO Configuration
+        - name: APPFLOWY_S3_USE_MINIO
+          value: "true"
+        - name: APPFLOWY_S3_CREATE_BUCKET
+          value: "true"
+        - name: APPFLOWY_S3_MINIO_URL
+          value: "http://appflowy-minio:9000"
+        - name: APPFLOWY_S3_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: APPFLOWY_S3_ACCESS_KEY
+        - name: APPFLOWY_S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: APPFLOWY_S3_SECRET_KEY
+        - name: APPFLOWY_S3_BUCKET
+          value: "appflowy"
+        - name: APPFLOWY_S3_REGION
+          value: "us-east-1"
+        - name: APPFLOWY_S3_PRESIGNED_URL_ENDPOINT
+          value: "http://appflowy.sector7.helloworlddao.com"
+
+        # URL Configuration
+        - name: APPFLOWY_BASE_URL
+          value: "http://appflowy.sector7.helloworlddao.com"
+        - name: APPFLOWY_WEB_URL
+          value: "http://appflowy.sector7.helloworlddao.com"
+
+        # Access Control
+        - name: APPFLOWY_ACCESS_CONTROL
+          value: "true"
+
+        # SMTP Configuration (optional)
+        - name: APPFLOWY_MAILER_SMTP_HOST
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: APPFLOWY_MAILER_SMTP_HOST
+        - name: APPFLOWY_MAILER_SMTP_PORT
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: APPFLOWY_MAILER_SMTP_PORT
+        - name: APPFLOWY_MAILER_SMTP_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: APPFLOWY_MAILER_SMTP_USERNAME
+        - name: APPFLOWY_MAILER_SMTP_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: APPFLOWY_MAILER_SMTP_EMAIL
+        - name: APPFLOWY_MAILER_SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: APPFLOWY_MAILER_SMTP_PASSWORD
+        - name: APPFLOWY_MAILER_SMTP_TLS_KIND
+          value: "none"
+
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appflowy-cloud
+  namespace: appflowy
+spec:
+  selector:
+    app: appflowy-cloud
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http

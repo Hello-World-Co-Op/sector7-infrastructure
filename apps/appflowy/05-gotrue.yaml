@@ -1,0 +1,156 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appflowy-gotrue
+  namespace: appflowy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appflowy-gotrue
+  template:
+    metadata:
+      labels:
+        app: appflowy-gotrue
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: aurora
+      containers:
+      - name: gotrue
+        image: appflowyinc/gotrue:latest
+        ports:
+        - containerPort: 9999
+          name: http
+        env:
+        # Database Configuration
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: POSTGRES_DB
+        - name: DATABASE_URL
+          value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@appflowy-postgres:5432/$(POSTGRES_DB)?search_path=auth"
+        - name: GOTRUE_DB_DRIVER
+          value: "postgres"
+
+        # Admin Credentials
+        - name: GOTRUE_ADMIN_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: GOTRUE_ADMIN_EMAIL
+        - name: GOTRUE_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: GOTRUE_ADMIN_PASSWORD
+
+        # JWT Configuration
+        - name: GOTRUE_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: GOTRUE_JWT_SECRET
+        - name: GOTRUE_JWT_EXP
+          value: "3600"
+        - name: GOTRUE_JWT_ADMIN_GROUP_NAME
+          value: "supabase_admin"
+
+        # Site Configuration
+        - name: GOTRUE_SITE_URL
+          value: "appflowy-flutter://"
+        - name: GOTRUE_URI_ALLOW_LIST
+          value: "*"
+        - name: API_EXTERNAL_URL
+          value: "http://appflowy.sector7.helloworlddao.com"
+        - name: GOTRUE_DISABLE_SIGNUP
+          value: "false"
+        - name: PORT
+          value: "9999"
+
+        # Mailer Configuration
+        - name: GOTRUE_MAILER_AUTOCONFIRM
+          value: "true"
+        - name: GOTRUE_MAILER_URLPATHS_CONFIRMATION
+          value: "/gotrue/verify"
+        - name: GOTRUE_MAILER_URLPATHS_INVITE
+          value: "/gotrue/verify"
+        - name: GOTRUE_MAILER_URLPATHS_RECOVERY
+          value: "/gotrue/verify"
+        - name: GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE
+          value: "/gotrue/verify"
+
+        # SMTP Configuration (optional)
+        - name: GOTRUE_SMTP_HOST
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: GOTRUE_SMTP_HOST
+        - name: GOTRUE_SMTP_PORT
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: GOTRUE_SMTP_PORT
+        - name: GOTRUE_SMTP_USER
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: GOTRUE_SMTP_USER
+        - name: GOTRUE_SMTP_PASS
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: GOTRUE_SMTP_PASS
+        - name: GOTRUE_SMTP_ADMIN_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: appflowy-secrets
+              key: GOTRUE_ADMIN_EMAIL
+        - name: GOTRUE_SMTP_MAX_FREQUENCY
+          value: "1ns"
+        - name: GOTRUE_RATE_LIMIT_EMAIL_SENT
+          value: "100"
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9999
+          initialDelaySeconds: 40
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9999
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appflowy-gotrue
+  namespace: appflowy
+spec:
+  selector:
+    app: appflowy-gotrue
+  ports:
+  - port: 9999
+    targetPort: 9999
+    name: http

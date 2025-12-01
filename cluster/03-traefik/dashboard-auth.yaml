@@ -1,0 +1,56 @@
+---
+# Basic auth secret for Traefik dashboard
+apiVersion: v1
+kind: Secret
+metadata:
+  name: traefik-dashboard-auth
+  namespace: traefik
+type: Opaque
+stringData:
+  users: |
+    admin:$6$U1rWLP2K9jwSJ6b7$bljKDYDyo21/ZU9yEDHHST34BfCXmk4TTWfPug2WkI5ku9YihDFzvULxrp.4htM/tdKbJje9Aah1qWMDXAF/e0
+---
+# Middleware for basic authentication
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: traefik-dashboard-auth
+  namespace: traefik
+spec:
+  basicAuth:
+    secret: traefik-dashboard-auth
+---
+# Internal service for dashboard API
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-dashboard
+  namespace: traefik
+spec:
+  type: ClusterIP
+  selector:
+    app: traefik
+  ports:
+    - name: dashboard
+      port: 8080
+      targetPort: 8080
+---
+# Secure IngressRoute for dashboard
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+  namespace: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`traefik.sector7.helloworlddao.com`)
+      kind: Rule
+      middlewares:
+        - name: traefik-dashboard-auth
+      services:
+        - name: api@internal
+          kind: TraefikService
+  tls:
+    certResolver: letsencrypt-prod

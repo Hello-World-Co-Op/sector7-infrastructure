@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appflowy-web
+  namespace: appflowy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appflowy-web
+  template:
+    metadata:
+      labels:
+        app: appflowy-web
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: aurora
+      containers:
+      - name: appflowy-web
+        image: appflowyinc/appflowy_web:latest
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: APPFLOWY_BASE_URL
+          value: "http://appflowy.sector7.helloworlddao.com"
+        - name: APPFLOWY_GOTRUE_BASE_URL
+          value: "http://appflowy.sector7.helloworlddao.com/gotrue"
+        - name: APPFLOWY_WS_BASE_URL
+          value: "ws://appflowy.sector7.helloworlddao.com/ws/v2"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appflowy-web
+  namespace: appflowy
+spec:
+  selector:
+    app: appflowy-web
+  ports:
+  - port: 3000
+    targetPort: 80
+    name: http

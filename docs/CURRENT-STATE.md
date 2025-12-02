@@ -1,21 +1,21 @@
 # Sector7 Infrastructure - Current State Documentation
 
-**Generated**: 2025-11-25
-**Cluster Age**: 5 days 21 hours
-**Last Verified**: 2025-11-25 13:30 EST
+**Generated**: 2025-12-01
+**Cluster Age**: 5 days
+**Last Verified**: 2025-12-01 21:00 EST
 
 ---
 
 ## Executive Summary
 
-**Status**: ✅ **OPERATIONAL** (with 1 failing service)
+**Status**: ✅ **FULLY OPERATIONAL**
 
 - **Cluster**: k3s v1.33.5+k3s1 running on 2 nodes
-- **Network**: 192.168.2.0/24 (migrated from 192.168.1.0/24)
-- **Ingress**: ingress-nginx (NodePort mode)
+- **Network**: 192.168.2.0/24 with MetalLB L2 (192.168.2.200-220)
+- **Ingress**: ingress-nginx with Let's Encrypt SSL
 - **Storage**: local-path-provisioner (default)
-- **Working Services**: 5/6 (Heimdall, n8n, Nextcloud, NocoDB, Supabase)
-- **Failing Services**: 1 (AppFlowy - GoTrue CrashLoopBackOff)
+- **Working Services**: 8/8 (all services operational with HTTPS)
+- **Repository**: https://github.com/Hello-World-Co-Op/sector7-infrastructure
 
 ---
 
@@ -26,11 +26,11 @@
 | Node | Role | IP Address | Status | OS | Kernel | Container Runtime |
 |------|------|------------|--------|----|----|-------------------|
 | aurora | control-plane, master, worker | 192.168.2.159 | Ready | Ubuntu 25.10 | 6.17.0-6-generic | containerd 2.1.4-k3s1 |
-| optiplex | worker | 192.168.2.231 | Ready | Ubuntu 25.10 | 6.17.0-6-generic | containerd 2.1.4-k3s1 |
+| library-wa-shi-tan | worker | 192.168.2.231 | Ready | Ubuntu 25.10 | 6.17.0-6-generic | containerd 2.1.4-k3s1 |
 
 **Node Specifications:**
-- **Aurora**: AMD Ryzen 5 5500 (6 cores, 12 threads), 30GB RAM, 98GB storage
-- **OptiPlex**: Intel i7-4790 @ 3.60GHz (4 cores, 8 threads), 30GB RAM, 98GB storage
+- **Aurora**: AMD Ryzen 5 5500 (6 cores, 12 threads), 30GB RAM
+- **library-wa-shi-tan**: Intel i7-4790 @ 3.60GHz (4 cores, 8 threads), 30GB RAM
 
 ### Kubernetes Versions
 
@@ -40,235 +40,153 @@
 
 ### Core System Components
 
-| Component | Namespace | Version | Status | Replicas |
-|-----------|-----------|---------|--------|----------|
-| coredns | kube-system | 1.12.3 | Running | 1/1 |
-| local-path-provisioner | kube-system | v0.0.31 | Running | 1/1 |
-| metrics-server | kube-system | v0.8.0 | Running | 1/1 |
-
-### Infrastructure Services
-
-#### Ingress-Nginx Controller
-
-- **Namespace**: ingress-nginx
-- **Version**: v1.11.1
-- **Type**: NodePort
-- **Ports**:
-  - HTTP: 30154 (NodePort) → 80
-  - HTTPS: 31650 (NodePort) → 443
-- **Service IP**: 10.43.173.223
-- **Status**: ✅ Running (1/1)
-
-#### Cert-Manager
-
-- **Namespace**: cert-manager
-- **Version**: v1.16.2
-- **Components**:
-  - cert-manager-controller: ✅ Running (1/1)
-  - cert-manager-cainjector: ✅ Running (1/1)
-  - cert-manager-webhook: ✅ Running (1/1)
-- **Cluster Issuers**: letsencrypt-prod (configured)
-
-### Storage
-
-#### Storage Classes
-
-| Name | Provisioner | Reclaim Policy | Volume Binding Mode | Default |
-|------|-------------|----------------|---------------------|---------|
-| local-path | rancher.io/local-path | Delete | WaitForFirstConsumer | ✅ Yes |
-
-**Note**: Manifests reference "longhorn" storage class, but cluster uses "local-path" provisioner.
-
-#### Persistent Volumes
-
-| PVC Name | Namespace | Size | Status | Storage Class | Used By |
-|----------|-----------|------|--------|---------------|---------|
-| heimdall-config | heimdall | 1Gi | Bound | local-path | heimdall |
-| n8n-data | n8n | 5Gi | Bound | local-path | n8n |
-| nextcloud-data | nextcloud | 20Gi | Bound | local-path | nextcloud |
-| nocodb-data | nocodb | 10Gi | Bound | local-path | nocodb |
-| supabase-db | supabase | 20Gi | Bound | local-path | supabase-db |
-
-**Total Storage Allocated**: 56 GiB
-**Available**: 132 GB (67GB on aurora + 65GB on optiplex)
+| Component | Namespace | Status | Purpose |
+|-----------|-----------|--------|---------|
+| coredns | kube-system | Running | Cluster DNS |
+| local-path-provisioner | kube-system | Running | Storage provisioning |
+| metrics-server | kube-system | Running | Resource metrics |
+| cert-manager | cert-manager | Running | SSL certificate management |
+| ingress-nginx | ingress-nginx | Running | Ingress controller |
+| metallb | metallb-system | Running | L2 load balancer |
 
 ---
 
 ## Application Services
 
-### 1. Heimdall (Dashboard) ✅
+### Service Status Overview
 
-**Purpose**: Application dashboard and launcher
+| Service | URL | Status | SSL | Admin Setup |
+|---------|-----|--------|-----|-------------|
+| Heimdall | https://dashboard.sector7.helloworlddao.com | ✅ Running | ✅ Valid | ✅ Complete |
+| AppFlowy | https://appflowy.sector7.helloworlddao.com | ✅ Running | ✅ Valid | ✅ Complete |
+| n8n | https://n8n.sector7.helloworlddao.com | ✅ Running | ✅ Valid | ✅ Complete |
+| Nextcloud | https://nextcloud.sector7.helloworlddao.com | ✅ Running | ✅ Valid | ✅ Complete |
+| NocoDB | https://nocodb.sector7.helloworlddao.com | ✅ Running | ✅ Valid | ✅ Complete |
+| Grafana | https://grafana.sector7.helloworlddao.com | ✅ Running | ✅ Valid | ✅ Complete |
+| Ollama | https://ollama.sector7.helloworlddao.com | ✅ Running | ⚠️ Pending | N/A (API) |
+| MinIO | https://minio.sector7.helloworlddao.com | ✅ Running | ⚠️ Pending | N/A (Internal) |
+
+### 1. Heimdall Dashboard ✅
+
+**Purpose**: Central application dashboard and launcher
 
 - **Namespace**: heimdall
-- **URL**: http://sector7.helloworlddao.com
+- **URL**: https://dashboard.sector7.helloworlddao.com
 - **Image**: lscr.io/linuxserver/heimdall:latest
-- **Deployment**: 1/1 replicas running on aurora
 - **Status**: ✅ **OPERATIONAL**
-- **Ingress**: nginx (HTTP only)
+- **SSL**: ✅ Let's Encrypt (valid)
 - **Storage**: 1Gi PVC (heimdall-config)
-- **Environment**:
-  - TZ: America/New_York
-  - PUID: 1000
-  - PGID: 1000
 
-**Ports**: 80, 443
+### 2. AppFlowy (Collaboration Platform) ✅
 
-### 2. n8n (Workflow Automation) ✅
+**Purpose**: Open-source Notion alternative with AI features
+
+- **Namespace**: appflowy
+- **URL**: https://appflowy.sector7.helloworlddao.com
+- **Status**: ✅ **OPERATIONAL**
+- **SSL**: ✅ Let's Encrypt (valid)
+- **Team Plan**: 4 seats (paid annual subscription)
+
+**Components**:
+
+| Component | Status | Image |
+|-----------|--------|-------|
+| appflowy-postgres | ✅ Running | postgres:15 |
+| appflowy-redis | ✅ Running | redis:7-alpine |
+| appflowy-minio | ✅ Running | minio/minio:latest |
+| appflowy-gotrue | ✅ Running | appflowyinc/gotrue:latest |
+| appflowy-cloud | ✅ Running | appflowyinc/appflowy_cloud:latest |
+| appflowy-worker | ✅ Running | appflowyinc/appflowy_worker:latest |
+| appflowy-web | ✅ Running | appflowyinc/appflowy_web:latest |
+| appflowy-admin-frontend | ✅ Running | appflowyinc/admin_frontend:latest |
+
+**AI Integration**:
+- Connected to local Ollama LLM service
+- Models available: llama3.2 (2.0GB), mistral (4.4GB), llama2 (3.8GB)
+- Endpoint: http://ollama.ollama.svc.cluster.local:11434/v1
+
+**Ingress Paths**:
+- `/gotrue/*` → appflowy-gotrue:9999 (auth endpoints)
+- `/ws` → appflowy-cloud:8000 (WebSocket)
+- `/api` → appflowy-cloud:8000 (API)
+- `/console` → appflowy-admin-frontend:3000 (Admin)
+- `/` → appflowy-web:3000 (Web UI)
+
+### 3. n8n (Workflow Automation) ✅
 
 **Purpose**: Workflow automation and integration platform
 
 - **Namespace**: n8n
-- **URL**: http://n8n.sector7.helloworlddao.com
+- **URL**: https://n8n.sector7.helloworlddao.com
 - **Image**: n8nio/n8n:latest
-- **Deployment**: 1/1 replicas running on aurora
 - **Status**: ✅ **OPERATIONAL**
-- **Ingress**: nginx (HTTP only)
+- **SSL**: ✅ Let's Encrypt (valid)
+- **Edition**: Community (free, single user)
 - **Storage**: 5Gi PVC (n8n-data)
-- **Node Selector**: kubernetes.io/hostname=aurora
-- **Resources**:
-  - Requests: 500m CPU, 1Gi memory
-  - Limits: 1000m CPU, 2Gi memory
+- **AI Integration**: Connected to Ollama
 
-**Key Environment Variables**:
-- N8N_HOST: n8n.sector7.helloworlddao.com
-- N8N_PROTOCOL: https
-- N8N_AI_ENABLED: true
-- N8N_AI_PROVIDER: ollama
-- OLLAMA_HOST: http://ollama.ollama.svc.cluster.local:11434
-- GENERIC_TIMEZONE: America/New_York
-
-**Mount Path**: /home/node/.n8n (subPath: n8n)
-**Security Context**: fsGroup 1000
-
-### 3. Nextcloud (File Storage) ✅
+### 4. Nextcloud (File Storage) ✅
 
 **Purpose**: Self-hosted file sharing and collaboration
 
 - **Namespace**: nextcloud
-- **URL**: http://nextcloud.sector7.helloworlddao.com
+- **URL**: https://nextcloud.sector7.helloworlddao.com
 - **Image**: nextcloud:apache
-- **Deployment**: 1/1 replicas running on aurora
 - **Status**: ✅ **OPERATIONAL**
-- **Ingress**: nginx (HTTP only, proxy-body-size: 0)
+- **SSL**: ✅ Let's Encrypt (valid)
 - **Storage**: 20Gi PVC (nextcloud-data)
-- **Database**: PostgreSQL (supabase-db)
-- **Node Selector**: kubernetes.io/hostname=aurora
-- **Resources**:
-  - Requests: 1000m CPU, 2Gi memory
-  - Limits: 2000m CPU, 4Gi memory
+- **Database**: PostgreSQL (shared postgres namespace)
 
-**Database Configuration**:
-- POSTGRES_HOST: supabase-db.supabase.svc.cluster.local
-- POSTGRES_DB: nextcloud
-- POSTGRES_USER: postgres
-- POSTGRES_PASSWORD: (from secret: supabase-config)
+**Users Configured**:
+- admin (system administrator)
+- degenotterdev (Graydon)
+- menley
+- coby
 
-**Nextcloud Settings**:
-- NEXTCLOUD_TRUSTED_DOMAINS: nextcloud.sector7.helloworlddao.com
-- OVERWRITEPROTOCOL: https
-
-**Mount Path**: /var/www/html (subPath: nextcloud)
-
-### 4. NocoDB (Database UI) ✅
+### 5. NocoDB (Database UI) ✅
 
 **Purpose**: No-code database and Airtable alternative
 
 - **Namespace**: nocodb
-- **URL**: http://nocodb.sector7.helloworlddao.com
+- **URL**: https://nocodb.sector7.helloworlddao.com
 - **Image**: nocodb/nocodb:latest
-- **Deployment**: 1/1 replicas running on aurora
 - **Status**: ✅ **OPERATIONAL**
-- **Ingress**: nginx (HTTP only)
+- **SSL**: ✅ Let's Encrypt (valid)
 - **Storage**: 10Gi PVC (nocodb-data)
-- **Database**: PostgreSQL (supabase-db)
-- **Node Selector**: kubernetes.io/hostname=aurora
-- **Resources**:
-  - Requests: 500m CPU, 1Gi memory
-  - Limits: 1000m CPU, 2Gi memory
+- **Users**: Unlimited (free tier)
 
-**Database Configuration**:
-- NC_DB: (from secret: nocodb-config)
-- Connected to: supabase-db.supabase.svc.cluster.local
+### 6. Grafana + Prometheus (Monitoring) ✅
 
-**Mount Path**: /usr/app/data (subPath: nocodb)
-**Security Context**: fsGroup 1000
+**Purpose**: Infrastructure monitoring and visualization
 
-### 5. Supabase PostgreSQL (Database) ✅
-
-**Purpose**: Shared PostgreSQL database for applications
-
-- **Namespace**: supabase
-- **Image**: supabase/postgres:15.1.0.147
-- **Type**: StatefulSet
-- **Deployment**: 1/1 replicas running on aurora
+- **Namespace**: monitoring
+- **Grafana URL**: https://grafana.sector7.helloworlddao.com
 - **Status**: ✅ **OPERATIONAL**
-- **Service**: ClusterIP (headless) on port 5432
-- **Storage**: 20Gi PVC (supabase-db)
-- **Node Selector**: kubernetes.io/hostname=aurora
-- **Resources**:
-  - Requests: 1000m CPU, 2Gi memory
-  - Limits: 2000m CPU, 4Gi memory
-
-**Databases Hosted**:
-- nextcloud (used by Nextcloud)
-- nocodb (used by NocoDB)
-- postgres (default database with auth schema for Supabase)
-
-**Schemas in postgres database**:
-- auth (Supabase auth tables)
-- extensions
-- graphql, graphql_public
-- pgbouncer
-- pgsodium, pgsodium_masks
-- public
-- realtime
-- storage
-- vault
-
-**Mount Path**: /var/lib/postgresql/data (subPath: pgdata)
-**Password**: (from secret: supabase-config → POSTGRES_PASSWORD)
-
-### 6. AppFlowy (Project Management) ❌
-
-**Purpose**: Open-source project management (CURRENTLY FAILING)
-
-- **Namespace**: appflowy
-- **URL**: http://appflowy.sector7.helloworlddao.com
-- **Status**: ❌ **DEGRADED** (GoTrue authentication service failing)
+- **SSL**: ✅ Let's Encrypt (valid)
 
 **Components**:
 
-| Component | Status | Replicas | Image |
-|-----------|--------|----------|-------|
-| redis | ✅ Running | 1/1 | redis:7-alpine |
-| minio | ✅ Running | 1/1 | minio/minio:latest |
-| appflowy-cloud | ✅ Running | 1/1 | appflowyinc/appflowy_cloud:latest |
-| appflowy-web | ✅ Running | 1/1 | appflowyinc/appflowy_web:latest |
-| admin-frontend | ✅ Running | 1/1 | appflowyinc/admin_frontend:latest |
-| gotrue | ❌ CrashLoopBackOff | 0/1 | appflowyinc/gotrue:latest |
+| Component | Image | Storage | Purpose |
+|-----------|-------|---------|---------|
+| Prometheus | prom/prometheus:v2.47.0 | 10Gi | Metrics collection |
+| Grafana | grafana/grafana:10.2.0 | 5Gi | Visualization |
 
-**Problem**: GoTrue authentication service cannot start due to database migration failure:
-```
-ERROR: operator does not exist: uuid = text (SQLSTATE 42883)
-Migration file: 20221208132122_backfill_email_last_sign_in_at.up.sql
-```
+**Data Sources**:
+- Prometheus: http://prometheus.monitoring.svc.cluster.local:9090
 
-**Root Cause**: AppFlowy's GoTrue is configured to use Supabase's PostgreSQL database with `search_path=auth`, but the Supabase auth schema is incompatible with GoTrue's expected schema. This creates a conflict between Supabase's auth tables and GoTrue's migration expectations.
+### 7. Ollama (LLM Service) ✅
 
-**Database Connection**:
-```
-postgres://postgres:supabase123@supabase-db.supabase.svc.cluster.local:5432/postgres?sslmode=disable&search_path=auth
-```
+**Purpose**: Local LLM inference for AI features
 
-**Ingress Configuration**:
-- /gotrue → gotrue:9999 (FAILING)
-- /ws → appflowy-cloud:8000
-- /api → appflowy-cloud:8000
-- /console → admin-frontend:3000
-- / → appflowy-web:3000
+- **Namespace**: ollama
+- **URL**: https://ollama.sector7.helloworlddao.com
+- **Status**: ✅ **OPERATIONAL**
+- **SSL**: ⚠️ Certificate pending
 
-**Recommendation**: Remove AppFlowy from cluster. It requires a dedicated database separate from Supabase.
+**Models Available**:
+- llama3.2 (2.0GB) - proposal drafting
+- mistral (4.4GB) - general purpose
+- llama2 (3.8GB)
 
 ---
 
@@ -277,271 +195,196 @@ postgres://postgres:supabase123@supabase-db.supabase.svc.cluster.local:5432/post
 ### Network Topology
 
 ```
-Internet
+Internet (Public IP: 71.73.220.69)
    │
 OPNsense Firewall (192.168.2.1)
-   │
-Spectrum Router (192.168.2.217)
+   │ Port Forward: 80,443 → 192.168.2.200
    │
 5-port Switch
    ├─ Aurora (192.168.2.159) - k3s control-plane + worker
-   ├─ OptiPlex (192.168.2.231) - k3s worker
+   ├─ library-wa-shi-tan (192.168.2.231) - k3s worker
    └─ Mini PC (192.168.2.106) - kubectl management station
+
+MetalLB L2 Pool: 192.168.2.200-220
+Ingress VIP: 192.168.2.200
 ```
 
-### IP Address Allocation
+### DNS Configuration (GoDaddy)
 
-| Device/Service | IP Address | Network | Purpose |
-|----------------|------------|---------|---------|
-| OPNsense (LAN) | 192.168.2.1 | 192.168.2.0/24 | Firewall & gateway |
-| Spectrum Router | 192.168.2.217 | 192.168.2.0/24 | Secondary router |
-| Aurora Tower | 192.168.2.159 | 192.168.2.0/24 | k3s control-plane |
-| Dell OptiPlex | 192.168.2.231 | 192.168.2.0/24 | k3s worker |
-| Mini PC | 192.168.2.106 | 192.168.2.0/24 | kubectl management |
+| Subdomain | Type | Target |
+|-----------|------|--------|
+| sector7.helloworlddao.com | A | 71.73.220.69 |
+| *.sector7.helloworlddao.com | CNAME | sector7.helloworlddao.com |
+| appflowy.sector7 | CNAME | sector7.helloworlddao.com |
+| n8n.sector7 | CNAME | sector7.helloworlddao.com |
+| nextcloud.sector7 | CNAME | sector7.helloworlddao.com |
+| nocodb.sector7 | CNAME | sector7.helloworlddao.com |
+| dashboard.sector7 | CNAME | sector7.helloworlddao.com |
+| grafana.sector7 | CNAME | sector7.helloworlddao.com |
 
-### Kubernetes Network CIDRs
+### Kubernetes Network
 
 - **Service CIDR**: 10.43.0.0/16
 - **Pod CIDR**: 10.42.0.0/16
 - **CNI**: Flannel (default k3s)
+- **Load Balancer**: MetalLB L2 mode
 
-### Ingress Configuration
+### SSL/TLS Certificates
 
-**Controller**: ingress-nginx
-**Type**: NodePort (not LoadBalancer)
-**Node Ports**:
-- HTTP: 30154 → aurora:192.168.2.159:30154
-- HTTPS: 31650 → aurora:192.168.2.159:31650
-
-**External Access**:
-- All services accessible via HTTP only (no SSL configured)
-- DNS points to: 192.168.2.159 (aurora node)
-- Ingress class: nginx
-- SSL redirect: disabled (annotation: nginx.ingress.kubernetes.io/ssl-redirect: "false")
-
-### Service URLs
-
-| Service | Internal URL | Status |
-|---------|-------------|--------|
-| Heimdall | http://sector7.helloworlddao.com | ✅ HTTP |
-| n8n | http://n8n.sector7.helloworlddao.com | ✅ HTTP |
-| Nextcloud | http://nextcloud.sector7.helloworlddao.com | ✅ HTTP |
-| NocoDB | http://nocodb.sector7.helloworlddao.com | ✅ HTTP |
-| AppFlowy | http://appflowy.sector7.helloworlddao.com | ❌ Failing |
-
-**Note**: All services currently use HTTP. TLS/SSL certificates are not yet issued despite cert-manager being installed.
+| Service | Certificate | Status | Issuer |
+|---------|-------------|--------|--------|
+| appflowy | appflowy-tls | ✅ Ready | letsencrypt-production |
+| heimdall | heimdall-tls | ✅ Ready | letsencrypt-production |
+| n8n | n8n-tls | ✅ Ready | letsencrypt-production |
+| nextcloud | nextcloud-tls | ✅ Ready | letsencrypt-production |
+| nocodb | nocodb-tls | ✅ Ready | letsencrypt-production |
+| grafana | grafana-tls | ✅ Ready | letsencrypt-production |
+| minio | minio-tls | ⚠️ Pending | letsencrypt-production |
+| ollama | ollama-tls | ⚠️ Pending | letsencrypt-production |
 
 ---
 
-## Security & Secrets
+## Storage
 
-### Secrets in Use
+### Storage Classes
 
-| Secret Name | Namespace | Type | Used By | Keys |
-|-------------|-----------|------|---------|------|
-| supabase-config | supabase | Opaque | supabase-db, nextcloud | POSTGRES_PASSWORD |
-| nocodb-config | nocodb | Opaque | nocodb | NC_DB |
+| Name | Provisioner | Reclaim Policy | Default |
+|------|-------------|----------------|---------|
+| local-path | rancher.io/local-path | Delete | ✅ Yes |
 
-**Warning**: Secrets should be reviewed and rotated. Default passwords may still be in use.
+### Persistent Volume Claims
 
----
-
-## Storage Analysis
-
-### Disk Usage
-
-**Aurora (192.168.2.159)**:
-- Total: 98GB
-- Used: 31GB
-- Available: 67GB
-- Usage: 32%
-
-**OptiPlex (192.168.2.231)**:
-- Total: 98GB
-- Used: 33GB
-- Available: 65GB
-- Usage: 34%
-
-**PVC Allocations**: 56GB (across both nodes)
-**Remaining Capacity**: ~76GB available for new workloads
-
-### Local-Path Storage Behavior
-
-- **Provisioner**: rancher.io/local-path
-- **Default Path**: /var/lib/rancher/k3s/storage
-- **Binding Mode**: WaitForFirstConsumer (PVs created only when pods scheduled)
-- **Reclaim Policy**: Delete (data deleted when PVC deleted)
+| PVC | Namespace | Size | Status |
+|-----|-----------|------|--------|
+| heimdall-config | heimdall | 1Gi | Bound |
+| n8n-data | n8n | 5Gi | Bound |
+| nextcloud-data | nextcloud | 20Gi | Bound |
+| nocodb-data | nocodb | 10Gi | Bound |
+| prometheus-data | monitoring | 10Gi | Bound |
+| grafana-data | monitoring | 5Gi | Bound |
+| appflowy-* | appflowy | Various | Bound |
 
 ---
 
-## Key Discrepancies Between Manifests and Reality
+## Security
 
-### 1. Storage Class Mismatch
+### Credentials Storage
 
-**Manifests Say**: `storageClassName: longhorn`
-**Cluster Uses**: `storageClassName: local-path`
+- **Location**: `/home/knower/sector7-infrastructure/credentials.txt.gpg`
+- **Encryption**: GPG symmetric (AES256)
+- **Decrypt**: `gpg -d credentials.txt.gpg > credentials.txt`
 
-**Impact**: Longhorn is not installed. All PVCs are automatically using local-path provisioner due to it being the default storage class. This works but lacks the redundancy and replication features of Longhorn.
+### Services with Authentication
 
-### 2. Ingress Class Mismatch
-
-**Manifests Say**: `ingressClassName: traefik`
-**Cluster Uses**: `ingressClassName: nginx`
-
-**Impact**: Traefik was removed and replaced with ingress-nginx. All ingress resources have been manually updated in the cluster but manifest files still reference traefik.
-
-### 3. Network Migration
-
-**Old Docs Say**: 192.168.1.0/24
-**Cluster Uses**: 192.168.2.0/24
-
-**Impact**: Network migration completed successfully (Option A from INFRASTRUCTURE-AUDIT.md was implemented). Documentation needs updating.
-
-### 4. LoadBalancer vs NodePort
-
-**Old Docs Say**: MetalLB providing LoadBalancer IPs (192.168.1.200-220)
-**Cluster Uses**: NodePort mode (30154, 31650 on aurora:192.168.2.159)
-
-**Impact**: MetalLB is not installed. Ingress controller uses NodePort instead. External access requires port forwarding to NodePort ports on aurora node.
+| Service | Auth Type | Multi-User |
+|---------|-----------|------------|
+| AppFlowy | GoTrue (JWT) | ✅ Yes (4 seats) |
+| n8n | Built-in | ❌ Single user (community) |
+| Nextcloud | Built-in | ✅ Yes (unlimited) |
+| NocoDB | Built-in | ✅ Yes (unlimited) |
+| Grafana | Built-in | ✅ Yes |
 
 ---
 
-## Demo/Test Services
+## Recent Changes (2025-11-26 to 2025-12-01)
 
-### Hello World (Demo)
+### Infrastructure Migration
+- ✅ Migrated repository to GitHub (Hello-World-Co-Op/sector7-infrastructure)
+- ✅ Fixed network topology (192.168.1.x → 192.168.2.x in all configs)
+- ✅ Corrected OPNsense port forwarding and /etc/hosts
 
-- **Namespace**: demo
-- **Image**: nginx:alpine
-- **Deployment**: 2/2 replicas
-- **Purpose**: Test deployment (can be removed)
-- **Status**: ✅ Running
-- **Ingress**: Not configured
+### AppFlowy
+- ✅ Fixed mixed content blocking (HTTP → HTTPS for all URLs)
+- ✅ Added TLS with Let's Encrypt certificate
+- ✅ Upgraded to Team Plan (4 seats, annual subscription)
+- ✅ Configured Ollama LLM integration for AI features
+- ✅ Set up admin console and user accounts
+- ✅ Updated desktop client to v0.10.4
 
----
+### Admin Account Setup
+- ✅ AppFlowy: Admin console + desktop user configured
+- ✅ n8n: Owner account (single user, community edition)
+- ✅ Nextcloud: Admin + 3 users (degenotterdev, menley, coby)
+- ✅ NocoDB: Super admin configured
 
-## External Services (Not in Cluster)
+### Monitoring Stack (NEW)
+- ✅ Deployed Prometheus for metrics collection
+- ✅ Deployed Grafana for visualization
+- ✅ Configured SSL certificate for Grafana
+- ✅ Added Prometheus data source to Grafana
 
-The following services are mapped as ExternalName services but run outside the cluster:
+### Dashboard
+- ✅ Fixed Heimdall DNS configuration
+- ✅ SSL certificate issued and valid
+- ✅ Added service links for all applications
 
-| Service | External IP | Port | Location |
-|---------|-------------|------|----------|
-| nocodb | 192.168.2.231 | 8080 | OptiPlex (Docker) |
-| plex | 192.168.2.231 | 32400 | OptiPlex (Docker) |
-
-**Note**: OptiPlex is running standalone Docker containers alongside Kubernetes. This creates iptables conflicts that cause issues with some k8s services.
-
----
-
-## Known Issues
-
-### 1. AppFlowy GoTrue CrashLoopBackOff ❌ CRITICAL
-
-**Status**: FAILING
-**Restarts**: 6+
-**Error**: Database migration failure (UUID type mismatch)
-**Action Required**: Remove AppFlowy or provide dedicated database
-
-### 2. No SSL/TLS Certificates 🔒 MEDIUM
-
-**Status**: WARNING
-**Issue**: cert-manager installed but certificates not issuing
-**Impact**: All services use HTTP only (no HTTPS)
-**Possible Causes**:
-- Let's Encrypt ACME challenges not completing
-- DNS not properly configured for external validation
-- Port 80/443 not forwarded from internet to cluster
-
-### 3. Manifest File Drift 📋 LOW
-
-**Status**: DOCUMENTATION
-**Issue**: Manifest files don't match deployed resources
-**Impact**: `kubectl apply -f apps/` would fail or create conflicts
-**Action Required**: Update manifest files to match actual state
+### DNS
+- ✅ Added CNAME for dashboard.sector7.helloworlddao.com
+- ✅ Added CNAME for grafana.sector7.helloworlddao.com
 
 ---
 
-## Resource Utilization
+## Directory Structure
 
-### CPU and Memory (Approximate)
-
-| Node | CPU Usage | Memory Usage | CPU Capacity | Memory Capacity |
-|------|-----------|--------------|--------------|-----------------|
-| aurora | < 2000m | ~8Gi | 12 cores | 30Gi |
-| optiplex | < 1000m | ~4Gi | 8 cores | 30Gi |
-
-**Total Cluster**:
-- CPU: ~3000m used / 20 cores available (15% utilization)
-- Memory: ~12Gi used / 60Gi available (20% utilization)
-
-**Note**: Cluster is lightly loaded with significant capacity for additional workloads.
-
----
-
-## Recommendations
-
-### Immediate Actions
-
-1. **Remove AppFlowy from cluster** (per user request)
-   - Delete appflowy namespace: `kubectl delete namespace appflowy`
-   - Remove manifest files from apps/appflowy/
-   - Update documentation
-
-2. **Update Manifest Files**
-   - Change all `storageClassName: longhorn` → `storageClassName: local-path`
-   - Change all `ingressClassName: traefik` → `ingressClassName: nginx`
-   - Update network IPs from 192.168.1.x → 192.168.2.x
-
-3. **Fix SSL Certificates**
-   - Verify DNS records point to public IP
-   - Check port forwarding (80/443) from OPNsense → Spectrum Router → aurora:30154/31650
-   - Test ACME HTTP-01 challenge completion
-
-### Short Term Improvements
-
-1. **Install Longhorn** (if distributed storage desired)
-   - Provides replication across nodes
-   - Enables volume snapshots and backups
-   - Requires updating PVCs to use longhorn storage class
-
-2. **Configure External Access**
-   - Set up proper port forwarding through double NAT
-   - OR: Migrate to single NAT (connect switch directly to OPNsense)
-
-3. **Security Hardening**
-   - Rotate all default passwords
-   - Create proper Kubernetes secrets (not ConfigMaps)
-   - Enable network policies
-   - Configure Pod Security Standards
-
-### Long Term Architecture
-
-1. **Consider LoadBalancer Setup**
-   - Install MetalLB or use cloud load balancer
-   - Eliminate NodePort dependencies
-   - Simplify external access
-
-2. **Implement Monitoring**
-   - Deploy Prometheus + Grafana
-   - Set up alerts for pod failures
-   - Track resource utilization trends
-
-3. **Backup Strategy**
-   - Automated PV backups (Velero or Longhorn snapshots)
-   - PostgreSQL dumps (pg_dumpall)
-   - GitOps for manifests (already in git)
+```
+sector7-infrastructure/
+├── apps/
+│   ├── appflowy/          # AppFlowy collaboration platform
+│   ├── heimdall/          # Dashboard
+│   ├── n8n/               # Workflow automation
+│   ├── nextcloud/         # File storage
+│   ├── nocodb/            # Database UI
+│   └── ollama/            # LLM service
+├── core/
+│   ├── cert-manager/      # SSL certificate management
+│   ├── ingress-nginx/     # Ingress controller
+│   └── metallb/           # L2 load balancer
+├── monitoring/
+│   ├── 00-namespace.yaml
+│   ├── prometheus/        # Metrics collection
+│   └── grafana/           # Visualization
+├── docs/
+│   ├── CURRENT-STATE.md   # This document
+│   ├── NETWORK-TOPOLOGY.md
+│   ├── QUICK-REFERENCE.md
+│   └── runbooks/
+├── credentials.txt.gpg    # Encrypted credentials (not in git)
+└── .gitignore
+```
 
 ---
 
-## Change Log
+## Quick Reference Commands
 
-| Date | Change | Author |
-|------|--------|--------|
-| 2025-11-20 | Initial cluster deployment | Previous Claude |
-| 2025-11-21 | Network migration (192.168.1.x → 192.168.2.x) | Previous Claude |
-| 2025-11-21 | Replaced Traefik with ingress-nginx | Previous Claude |
-| 2025-11-22 | Removed Longhorn, using local-path | Previous Claude |
-| 2025-11-23 | AppFlowy deployed (failing) | Previous Claude |
-| 2025-11-25 | **This document created** | Claude (current) |
+```bash
+# Check all pods
+kubectl get pods -A
+
+# Check certificates
+kubectl get certificates -A
+
+# Check ingresses
+kubectl get ingress -A
+
+# View logs
+kubectl logs -n <namespace> <pod-name>
+
+# Restart deployment
+kubectl rollout restart deployment/<name> -n <namespace>
+
+# Decrypt credentials
+gpg -d credentials.txt.gpg > credentials.txt
+```
+
+---
+
+## Next Steps
+
+1. **Fix pending SSL certificates** (minio, ollama)
+2. **Set up automated backups** (Velero or manual pg_dump)
+3. **Configure Grafana dashboards** for Kubernetes monitoring
+4. **Implement n8n workflows** for automation pipeline
+5. **Set up proposal pipeline** for HelloWorldDAO
 
 ---
 
@@ -549,15 +392,5 @@ The following services are mapped as ExternalName services but run outside the c
 
 - **File**: /home/knower/sector7-infrastructure/docs/CURRENT-STATE.md
 - **Purpose**: Authoritative reference for actual cluster state
-- **Maintained By**: Manual updates after each significant change
-- **Review Frequency**: After any infrastructure changes
-- **Related Docs**:
-  - INFRASTRUCTURE-AUDIT.md (historical audit from 2025-11-15)
-  - WORKING-SERVICES-SNAPSHOT.md (snapshot from 2025-11-23)
-  - QUICK-REFERENCE.md (operational commands - needs update)
-  - README.md (project overview - needs update)
-
----
-
-**Status**: This document represents the verified current state as of 2025-11-25 13:30 EST.
-**Next Action**: Remove AppFlowy components and update all documentation to match reality.
+- **Last Updated**: 2025-12-01
+- **Repository**: https://github.com/Hello-World-Co-Op/sector7-infrastructure

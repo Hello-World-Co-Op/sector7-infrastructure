@@ -85,13 +85,13 @@ spec:
         - name: APPFLOWY_S3_REGION
           value: "us-east-1"
         - name: APPFLOWY_S3_PRESIGNED_URL_ENDPOINT
-          value: "http://appflowy.sector7.helloworlddao.com"
+          value: "https://appflowy.sector7.helloworlddao.com"
 
         # URL Configuration
         - name: APPFLOWY_BASE_URL
-          value: "http://appflowy.sector7.helloworlddao.com"
+          value: "https://appflowy.sector7.helloworlddao.com"
         - name: APPFLOWY_WEB_URL
-          value: "http://appflowy.sector7.helloworlddao.com"
+          value: "https://appflowy.sector7.helloworlddao.com"
 
         # Access Control
         - name: APPFLOWY_ACCESS_CONTROL

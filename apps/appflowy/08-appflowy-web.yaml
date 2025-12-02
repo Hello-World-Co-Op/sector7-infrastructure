@@ -24,11 +24,11 @@ spec:
           name: http
         env:
         - name: APPFLOWY_BASE_URL
-          value: "http://appflowy.sector7.helloworlddao.com"
+          value: "https://appflowy.sector7.helloworlddao.com"
         - name: APPFLOWY_GOTRUE_BASE_URL
-          value: "http://appflowy.sector7.helloworlddao.com/gotrue"
+          value: "https://appflowy.sector7.helloworlddao.com/gotrue"
         - name: APPFLOWY_WS_BASE_URL
-          value: "ws://appflowy.sector7.helloworlddao.com/ws/v2"
+          value: "wss://appflowy.sector7.helloworlddao.com/ws/v2"
         resources:
           requests:
             memory: "512Mi"

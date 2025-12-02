@@ -25,9 +25,9 @@ spec:
         env:
         # Client-side URLs (used by browser JavaScript)
         - name: APPFLOWY_BASE_URL
-          value: "http://appflowy.sector7.helloworlddao.com"
+          value: "https://appflowy.sector7.helloworlddao.com"
         - name: APPFLOWY_GOTRUE_BASE_URL
-          value: "http://appflowy.sector7.helloworlddao.com/gotrue"
+          value: "https://appflowy.sector7.helloworlddao.com/gotrue"
 
         # Server-side URLs (used by Next.js server to connect to backend)
         - name: ADMIN_FRONTEND_REDIS_URL

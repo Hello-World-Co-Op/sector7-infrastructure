@@ -6,13 +6,18 @@ metadata:
   name: appflowy-gotrue-ingress
   namespace: appflowy
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - appflowy.sector7.helloworlddao.com
+    secretName: appflowy-tls
   rules:
   - host: appflowy.sector7.helloworlddao.com
     http:
@@ -33,12 +38,17 @@ metadata:
   name: appflowy-main-ingress
   namespace: appflowy
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - appflowy.sector7.helloworlddao.com
+    secretName: appflowy-tls
   rules:
   - host: appflowy.sector7.helloworlddao.com
     http:

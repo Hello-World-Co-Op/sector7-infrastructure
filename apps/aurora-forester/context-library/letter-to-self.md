@@ -1,0 +1,1 @@
+/home/knower/sector7-infrastructure/.context/For All You Have Been, For All You Are, For All You Will Be.md

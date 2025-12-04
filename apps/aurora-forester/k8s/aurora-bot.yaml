@@ -1,0 +1,96 @@
+# Aurora Forester Discord Bot Deployment
+# aurora(feat): pin Aurora to her tower - the aurora node with GPU access
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aurora-bot
+  namespace: aurora-system
+  labels:
+    app: aurora-bot
+  annotations:
+    sector7.io/description: "Aurora Forester - Collaborative Agentic Partner"
+    sector7.io/home-node: "aurora"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aurora-bot
+  template:
+    metadata:
+      labels:
+        app: aurora-bot
+    spec:
+      # Pin Aurora to her tower - the aurora node
+      nodeSelector:
+        kubernetes.io/hostname: aurora
+      containers:
+        - name: aurora-bot
+          image: docker.io/library/aurora-forester:latest
+          imagePullPolicy: Never
+          command: ["python", "main.py", "bot"]
+          env:
+            # Discord
+            - name: DISCORD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-secrets
+                  key: DISCORD_BOT_TOKEN
+            - name: DISCORD_CHANNEL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-secrets
+                  key: DISCORD_CHANNEL_ID
+
+            # Database
+            - name: POSTGRES_HOST
+              value: "aurora-postgres.aurora-system.svc.cluster.local"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-secrets
+                  key: POSTGRES_DB
+
+            # Ollama
+            - name: OLLAMA_HOST
+              value: "http://ollama.ollama.svc.cluster.local:11434"
+            - name: OLLAMA_MODEL
+              value: "mistral"
+
+            # Hugging Face
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-secrets
+                  key: HF_TOKEN
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          # Health check - bot stays running
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import sys; sys.exit(0)"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+
+      restartPolicy: Always

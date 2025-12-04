@@ -1,0 +1,107 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aurora-forester"
+version = "1.0.0"
+description = "Collaborative Agentic Partner - RAG-enabled, multi-channel, self-improving"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+
+authors = [
+    {name = "Aurora System"}
+]
+
+keywords = [
+    "ai",
+    "agent",
+    "langgraph",
+    "rag",
+    "collaborative",
+    "agentic"
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # Core async and typing
+    "asyncio>=3.4.3",
+
+    # LangChain/LangGraph ecosystem
+    "langchain>=0.1.0",
+    "langgraph>=0.0.20",
+    "langchain-community>=0.0.10",
+
+    # Database
+    "asyncpg>=0.29.0",
+    "psycopg2-binary>=2.9.9",
+
+    # HuggingFace
+    "huggingface-hub>=0.20.0",
+    "sentence-transformers>=2.2.0",
+    "transformers>=4.36.0",
+
+    # Discord
+    "discord.py>=2.3.0",
+
+    # Web/API
+    "fastapi>=0.109.0",
+    "uvicorn>=0.25.0",
+    "httpx>=0.26.0",
+
+    # Data handling
+    "pydantic>=2.5.0",
+    "python-dotenv>=1.0.0",
+
+    # Embeddings and ML
+    "numpy>=1.26.0",
+    "torch>=2.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "black>=23.12.0",
+    "ruff>=0.1.9",
+    "mypy>=1.8.0",
+]
+
+sms = [
+    "twilio>=8.10.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/helloworlddao/aurora-forester"
+Documentation = "https://docs.helloworlddao.com/aurora"
+
+[project.scripts]
+aurora = "aurora_forester.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true

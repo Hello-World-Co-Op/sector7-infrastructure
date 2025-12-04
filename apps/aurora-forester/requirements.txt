@@ -1,0 +1,32 @@
+# Aurora Forester Dependencies
+# Install with: pip install -r requirements.txt
+
+# LangChain/LangGraph ecosystem
+langchain>=0.1.0
+langgraph>=0.0.20
+langchain-community>=0.0.10
+
+# Database
+asyncpg>=0.29.0
+psycopg2-binary>=2.9.9
+
+# HuggingFace
+huggingface-hub>=0.20.0
+sentence-transformers>=2.2.0
+transformers>=4.36.0
+
+# Discord
+discord.py>=2.3.0
+
+# Web/API
+fastapi>=0.109.0
+uvicorn>=0.25.0
+httpx>=0.26.0
+
+# Data handling
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+
+# Embeddings and ML
+numpy>=1.26.0
+torch>=2.1.0

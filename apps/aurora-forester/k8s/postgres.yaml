@@ -1,0 +1,85 @@
+# Aurora PostgreSQL Database
+# aurora(feat): pin Aurora's database to the aurora tower node
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aurora-postgres-pvc
+  namespace: aurora-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aurora-postgres
+  namespace: aurora-system
+  labels:
+    app: aurora-postgres
+  annotations:
+    sector7.io/description: "Aurora's persistent memory and context"
+    sector7.io/home-node: "aurora"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aurora-postgres
+  template:
+    metadata:
+      labels:
+        app: aurora-postgres
+    spec:
+      # Pin Aurora's database to her tower
+      nodeSelector:
+        kubernetes.io/hostname: aurora
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: aurora-secrets
+                  key: POSTGRES_DB
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: aurora-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aurora-postgres
+  namespace: aurora-system
+spec:
+  selector:
+    app: aurora-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

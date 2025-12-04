@@ -35,3 +35,7 @@ credentials.txt.gpg
 **/01-secrets.yaml
 *-secrets.yaml
 !*-secrets.yaml.template
+
+# Private context (encrypted locally)
+.context/
+venv/

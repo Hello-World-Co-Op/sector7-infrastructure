@@ -1,0 +1,8 @@
+# Otto System Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: otto-system
+  labels:
+    app: otto-jack
+    purpose: platform-guide

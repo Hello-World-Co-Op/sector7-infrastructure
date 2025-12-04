@@ -1,0 +1,110 @@
+# Otto Knowledge Base ConfigMap
+# This contains key documentation for Otto to reference
+# Updated by sync job from Hello World docs repo
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otto-knowledge
+  namespace: otto-system
+  labels:
+    app: otto-bot
+data:
+  hello-world-overview.md: |
+    # Hello World Co-Op DAO
+
+    Hello World Co-Op is a decentralized autonomous organization (DAO) built on the
+    Internet Computer Protocol (ICP). We're building cooperative infrastructure for
+    the digital age.
+
+    ## What is a Co-Op DAO?
+    A cooperative DAO combines the democratic principles of traditional cooperatives
+    with the transparency and automation of blockchain technology.
+
+    ## Key Features
+    - **Member-Owned**: Every member has a voice through governance proposals
+    - **Transparent**: All decisions are recorded on-chain
+    - **Self-Custody**: You control your own identity and assets
+    - **Community-Driven**: Built by and for the community
+
+  otter-camp.md: |
+    # Otter Camp
+
+    Otter Camp is Hello World's gamified crowdfunding platform - "the game that rebuilds worlds."
+
+    ## How It Works
+    1. **Join**: Get your Membership NFT (like a library card that lets you vote!)
+    2. **Explore**: Browse campaigns and quests
+    3. **Contribute**: Support projects you believe in
+    4. **Earn**: Receive DOM tokens and achievements
+    5. **Govern**: Vote on proposals that shape the ecosystem
+
+    ## Campaigns
+    Campaigns are community-driven fundraising efforts for specific projects.
+    Contributors receive rewards and recognition for their support.
+
+    ## Quests
+    Complete quests to earn XP, achievements, and DOM tokens while learning
+    about the ecosystem!
+
+  membership.md: |
+    # Membership NFT
+
+    Your Membership NFT is your key to the Hello World ecosystem!
+
+    Think of it like a library card - but one that also lets you vote on
+    how the library is run.
+
+    ## Benefits
+    - Voting rights on governance proposals
+    - Access to member-only features
+    - Quest participation
+    - DOM token rewards
+    - Community recognition
+
+    ## How to Get One
+    1. Visit helloworlddao.com
+    2. Create an account with Internet Identity
+    3. Complete the onboarding quest
+    4. Mint your Membership NFT!
+
+  dom-token.md: |
+    # DOM Token
+
+    DOM is the governance and utility token of Hello World Co-Op.
+
+    ## Tokenomics
+    - **Fixed Supply**: Deflationary model with burn mechanisms
+    - **Governance**: Vote weight based on token holdings
+    - **Utility**: Access premium features and services
+    - **Rewards**: Earned through participation and contributions
+
+    ## Getting DOM
+    - Complete quests on Otter Camp
+    - Contribute to campaigns
+    - Participate in governance
+    - Community rewards and bounties
+
+  getting-started.md: |
+    # Getting Started with Hello World
+
+    Welcome to Hello World Co-Op! Here's how to begin your journey:
+
+    ## Step 1: Create Your Identity
+    Visit helloworlddao.com and set up your Internet Identity.
+    This gives you self-custody of your account.
+
+    ## Step 2: Get Your Membership
+    Complete the onboarding tutorial to mint your Membership NFT.
+
+    ## Step 3: Explore Otter Camp
+    Browse campaigns, try some quests, and get familiar with the platform.
+
+    ## Step 4: Join the Community
+    Connect with us on Discord! Ask questions, share ideas, and meet
+    fellow co-op members.
+
+    ## Step 5: Participate in Governance
+    Once you're comfortable, start voting on proposals and shaping
+    the future of Hello World!
+
+    Need help? I'm Otto, your friendly guide - just ask!

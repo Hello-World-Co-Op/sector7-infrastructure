@@ -1,0 +1,65 @@
+# Otto Discord Bot Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otto-bot
+  namespace: otto-system
+  labels:
+    app: otto-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otto-bot
+  template:
+    metadata:
+      labels:
+        app: otto-bot
+    spec:
+      containers:
+        - name: otto-bot
+          image: docker.io/library/otto-jack:latest
+          imagePullPolicy: Never
+          command: ["python", "main.py", "bot"]
+          env:
+            # Discord
+            - name: DISCORD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: otto-secrets
+                  key: DISCORD_BOT_TOKEN
+
+            # Ollama (shared cluster service)
+            - name: OLLAMA_HOST
+              value: "http://ollama.ollama.svc.cluster.local:11434"
+            - name: OLLAMA_MODEL
+              value: "mistral"
+
+          volumeMounts:
+            - name: knowledge-base
+              mountPath: /app/knowledge
+              readOnly: true
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import sys; sys.exit(0)"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+
+      volumes:
+        - name: knowledge-base
+          configMap:
+            name: otto-knowledge
+
+      restartPolicy: Always
